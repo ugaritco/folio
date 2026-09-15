@@ -1,0 +1,68 @@
+<?php
+
+namespace Tests;
+
+use Heritage\Filesystem\Filesystem;
+use Heritage\Foundation\Application;
+use Heritage\Support\Facades\View;
+use Ugarit\Folio\FolioServiceProvider;
+use Ugarit\Folio\MountPath;
+use Ugarit\Folio\Router;
+use Orchestra\Testbench\TestCase as OrchestraTestCase;
+
+abstract class TestCase extends OrchestraTestCase
+{
+    /**
+     * {@inheritDoc}
+     */
+    protected function setUp(): void
+    {
+        $this->afterApplicationCreated(fn () => View::addLocation(__DIR__.'/Feature/resources/views'));
+
+        parent::setUp();
+    }
+
+    /**
+     * Get the package providers.
+     *
+     * @param  Application  $app
+     */
+    protected function getPackageProviders($app): array
+    {
+        return [
+            FolioServiceProvider::class,
+        ];
+    }
+
+    /**
+     * Create the given views.
+     *
+     * @param  array<string, array<string, string>|string>  $views
+     */
+    protected function views(array $views, $directory = null): void
+    {
+        $directory ??= __DIR__.'/tmp/views';
+
+        foreach ($views as $key => $value) {
+            if (is_array($value)) {
+                (new Filesystem)->ensureDirectoryExists(
+                    $directory.$key,
+                );
+
+                $this->views($value, $directory.$key);
+            } else {
+                touch($directory.$value);
+            }
+        }
+    }
+
+    /**
+     * Create a new router instance.
+     */
+    protected function router(): Router
+    {
+        return new Router(
+            new MountPath(__DIR__.'/tmp/views', '/', [], null),
+        );
+    }
+}
